@@ -1,0 +1,194 @@
+Here’s a **single “full prompt”** you can paste into **Replit Agent / Replit AI (“Build me an app…”)** to get a complete, production-grade MVP aligned with your ReOrg spec + the architecture decisions we’ve been using.
+
+---
+
+## Full Replit Prompt (paste as-is)
+
+You are building **ReOrg AI MVP**: an invite-only, multi-tenant web app that ingests real client documents (xlsx/pdf/pptx/docx/csv), extracts **facts + evidence**, supports **human-in-the-loop approval**, produces a deterministic **ValueScope artifact**, and exports results. The app must be safe-by-default for **LGPD/PII** and robust for Replit runtime constraints.
+
+### 0) Tech stack & repo shape
+
+Use:
+
+* **Next.js 14+ (App Router) + TypeScript**
+* **Postgres + Drizzle ORM**
+* **Vitest** (unit/integration) + **Playwright** (golden path E2E)
+* **OpenAI SDK** for structured outputs (JSON-only) with **Zod validation**
+* **Cloudflare R2 (S3-compatible)** for file storage (primary storage from day 1)
+* Keep filesystem usage strictly **ephemeral** (temp processing only)
+
+Repo should include:
+
+* `src/app` (UI routes + API routes)
+* `src/server/*` (auth, rbac, storage, pii, jobs, pipelines, llm, exports)
+* `drizzle/migrations/*`
+* `openapi/openapi.yaml` (MVP-complete API)
+* `scripts/runner.*` (job runner process)
+* `tests/*`, `e2e/*`
+* `docs/*` (handover docs, spec references, policies)
+
+### 1) Core product flows (must work end-to-end)
+
+**Flow A — Invite-only onboarding**
+
+* Tenant owner can create invites for emails with role (owner/admin/analyst/viewer), expiry.
+* User accepts invite → account is created (or linked) → membership created.
+* JWT or session-based auth (Bearer token) is fine.
+
+**Flow B — Project + Data Room**
+
+* User selects a tenant, creates a project, chooses **output language per project**: `pt-BR|en|es`.
+* Upload multiple files to a project Data Room.
+* Upload immediately stores file in **R2** and creates a `documents` row with storage key/provider.
+* Data Room shows docs table: filename, kind, status, PII risk, sanitizedAt, tags, actions.
+
+**Flow C — PII fail-closed**
+
+* On upload, run PII scan and classify risk: `low|medium|high|unknown`.
+* If `high` or `unknown`, mark document status as **blocked** until sanitized.
+* Provide “Sanitize” action: create a sanitized copy in R2 + update audit fields.
+* Add DB-level guardrails so evidence snippets cannot silently store CPF/email/phone patterns.
+* “Preview” must be **safe preview** (redacted text or limited table rows).
+
+**Flow D — Jobs pipeline (robust)**
+Implement a DB-backed job queue:
+
+* Jobs: `queued|running|succeeded|failed|blocked|canceled`
+* Locking uses **locked_until + locked_by + heartbeat_at**
+* Claim logic: job is claimable if `locked_until is null OR locked_until < now()`
+* Set `locked_until = now() + 10 minutes`, update `heartbeat_at` every 60s while running
+* If runner crashes, zombie locks self-heal once `locked_until` passes
+* Each job has **steps** with per-step timeout; on timeout mark failed and release lock
+
+Provide job types:
+
+* `ingest_documents_v1`: detect doc kinds + build extraction plan metadata per doc
+* `extract_facts_v1`: create proposed facts + evidence pointers (no raw full-text stored)
+* `valuescope_v1`: compute deterministic ValueScope from APPROVED facts only
+* `export_v1`: export artifacts to `md|html|json`
+
+**Flow E — HITL facts + Evidence Drawer**
+
+* Facts list view with filters (status/type/confidence).
+* Actions: approve / reject / edit (edit valueJson + unit + confidence).
+* Evidence drawer for a fact shows evidence items (doc + ref).
+* Snippets must be **computed on-demand** and always **redacted** (never store unredacted snippet).
+* Evidence items should support kinds like: xlsx_cell, csv_row, pdf_page, docx_paragraph, url, manual_note.
+
+**Flow F — Outputs + Export**
+
+* Store artifacts in `artifacts` table as JSON.
+* Expose outputs page: ValueScope artifact card + export.
+* Export returns a download URL (R2 signed URL or app route).
+
+### 2) Data model (required tables)
+
+Create Drizzle schema + migrations for:
+
+* `tenants`, `users`, `memberships`, `invites`, `auth_sessions` (or jwt)
+* `projects`
+* `documents` (with storage_provider, storage_key, sha256, tags_json, pii fields, sanitized audit fields)
+* `facts` (fact_type, key, value_json, unit, confidence, status, derived_from_job_id)
+* `evidence` (kind, ref_json, snippet optional but must pass DB checks; snippetRedacted default true)
+* `artifacts` (type, schema_version, language, data_json)
+* `jobs`, `job_steps`
+* `audit_events` (record document.sanitized, invite.created, fact.approved/rejected/edited, export.created, etc.)
+
+All multi-tenant data must be scoped by `tenant_id` and enforced in code (membership check on every request). Prefer indexing for tenant/project queries.
+
+### 3) API surface (MVP-complete)
+
+Implement these endpoints (matching OpenAPI):
+
+* `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/me`
+* `POST /api/invites/accept`
+* `GET /api/tenants`
+* `GET/POST /api/t/{tenantSlug}/invites`
+* `GET/POST /api/t/{tenantSlug}/projects`
+* `GET/PATCH /api/t/{tenantSlug}/projects/{projectId}`
+* `GET/POST /api/t/{tenantSlug}/projects/{projectId}/documents`
+* `GET /api/documents/{documentId}/preview`
+* `POST /api/documents/{documentId}/sanitize`
+* `DELETE /api/documents/{documentId}`
+* `POST /api/t/{tenantSlug}/projects/{projectId}/run/ingest`
+* `POST /api/t/{tenantSlug}/projects/{projectId}/run/extract`
+* `POST /api/t/{tenantSlug}/projects/{projectId}/run/valuescope`
+* `GET /api/jobs/{jobId}`, `GET /api/jobs/{jobId}/steps`
+* `GET /api/t/{tenantSlug}/projects/{projectId}/facts`
+* `POST /api/facts/{factId}/approve`, `POST /api/facts/{factId}/reject`, `PATCH /api/facts/{factId}` (edit)
+* `GET /api/facts/{factId}/evidence`
+* `GET /api/evidence/{evidenceId}/snippet`
+* `GET /api/t/{tenantSlug}/projects/{projectId}/outputs`
+* `GET /api/outputs/{outputId}`
+* `POST /api/t/{tenantSlug}/projects/{projectId}/export`
+* `GET /api/healthz`, `GET /api/readyz`
+
+### 4) LLM rules (non-negotiable)
+
+* LLM is allowed to **structure** and **summarize**, but must not fabricate numeric values.
+* Any LLM response must be **JSON-only**, validated with **Zod**.
+* Use LLM for:
+
+  * doc classification hints
+  * extraction planning
+  * narrative framing of outputs (text), but **numbers must come from deterministic computation**
+* Add a “verifier” step that checks narrative does not introduce new numbers absent in approved facts.
+
+### 5) Deterministic ValueScope (numbers-only from approved facts)
+
+Implement a numeric engine that:
+
+* Reads APPROVED facts
+* Produces ValueScope JSON (KPIs/claims/opportunities) deterministically
+* Any ranking/scoring logic must be deterministic and testable
+* Narrative layer (LLM) may add prose, but must reference existing facts/evidence.
+
+### 6) Security, compliance, reliability
+
+* Default to **fail-closed** for PII: blocked docs cannot be used in extract jobs until sanitized.
+* Store sanitization timestamps and who triggered sanitization.
+* Add DB-level checks to prevent common PII patterns in evidence snippets.
+* Never persist raw full document text in DB.
+* Add rate limiting basics on auth and upload endpoints.
+* Jobs must self-heal from crashes (lock expiry).
+* Add structured logging with tenant/project/job correlation IDs.
+
+### 7) Replit operational constraints
+
+* Runner runs as a separate process (script) and should be resilient to restarts.
+* Avoid memory spikes: stream uploads to R2, do not load huge files fully into memory.
+* Ensure everything runs with Node runtime in Replit.
+
+### 8) Tests (minimum required)
+
+* Unit tests:
+
+  * PII scanner detection for CPF/email/phone
+  * Redaction function behavior
+  * Job claim/lock expiry logic
+* Integration tests:
+
+  * Tenant isolation on a key endpoint
+* Playwright E2E “golden path”:
+
+  * Login → create project → upload doc → sanitize if needed → run extract → approve fact → run valuescope → export
+
+### 9) Definition of Done
+
+The app is “done” when a new user can:
+
+1. join via invite,
+2. upload docs to a project stored in R2,
+3. see safe previews,
+4. sanitize blocked docs,
+5. run ingest/extract jobs without zombie locks,
+6. approve facts with evidence drawer,
+7. generate ValueScope artifact,
+8. export it to md/json/html,
+9. and all tests pass.
+
+Build this app end-to-end with clean structure, readable code, and clear README setup instructions + `.env.example`.
+
+---
+
+If you tell me **which Replit entrypoint you’ll use** (“Create new app from prompt” vs “Import zip then ask Agent to implement”), I’ll tweak this prompt to be optimal for that exact workflow (but the above works in both).

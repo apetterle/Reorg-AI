@@ -1,0 +1,122 @@
+You’re describing the **real** ReOrg platform (and you’re right): it’s not “a project list + a few jobs.” It’s an **enterprise multi-tenant platform for consulting firms** where each tenant must manage **Companies (clients)** → **Projects**, and each project must run **Phases 0–7** with **dashboards + evidence + report exports** that match (and beat) your example PDFs.
+
+Right now, what typically goes wrong (and what you’re seeing) is that the implementation is missing the **platform contract** that forces:
+
+* the **Company layer** (client orgs) between tenant and project,
+* a **Phase engine** (runs, gates, versions),
+* a **report system** (templates + exports + versioning),
+* an **analytics layer** (metrics marts for dashboards),
+* and an **LLM quality system** (evidence-first + deterministic numbers + verification).
+
+## I created an enterprise-grade “platform contract pack” (detailed + implementable)
+
+This is the missing piece that prevents Replit/devs from “guessing the product.”
+
+[Download: reorg-platform-enterprise-spec.zip](sandbox:/mnt/data/reorg-platform-enterprise-spec.zip)
+
+It includes:
+
+* **Platform model** (Tenant → Company → Project → Phase Runs → Artifacts → Reports + Evidence)
+* **Deliverables per phase 0–7** (dashboards + artifacts + gates)
+* **LLM precision strategy** (multi-agent roles, retrieval, verifiers, CI quality gates)
+* **Analytics + dashboards spec** (metrics_timeseries model, standard dashboards per phase)
+* **Figma UI spec** (frame-by-frame checklist)
+* **JSON Schemas** for key artifacts (so LLM outputs are machine-validated)
+* A **Replit MASTER prompt** that forces incremental implementation (Phase 0 → 7)
+
+---
+
+# What the platform must become (non-negotiable architecture)
+
+## 1) True multi-tenant consultant platform
+
+* **Tenant = consulting firm**
+* Tenant contains users + RBAC + policies + billing
+* Tenant creates **Companies (clients)**
+* Each company has **Projects**
+* Each project has **Phases 0–7** with **gated progression** and versioned outputs
+
+## 2) Phase engine + versioned artifacts (this is the backbone)
+
+Every phase needs:
+
+* `phase_run` (status, logs, inputs, outputs summary)
+* versioned `artifacts` (JSON source of truth)
+* `gate` decision record (pass/fail, who approved, why, evidence coverage)
+
+This is how you get repeatable, “consulting-grade” outputs.
+
+## 3) Dashboards and graphs must come from a metrics layer (not LLM prose)
+
+To produce sophisticated dashboards like your examples (KPI dashboards, ROI/NPV, stack cost models, risk heatmaps), you need:
+
+* canonical metrics tables (`metrics_timeseries`, marts/materialized views)
+* consistent chart pipelines
+* “show data” + “show evidence” on every chart/number
+
+LLM writes the narrative; **the platform computes the numbers**.
+
+## 4) Docling-like normalization for massive mixed files
+
+Your ingestion must produce **Document Bundles** so the LLM can reliably work at scale:
+
+* `manifest.json` (pages/tables/anchors)
+* `text.md` (clean text)
+* `chunks.jsonl` (chunked text with anchors)
+* `tables/*.json` (table extraction with cell anchors)
+* stored in object storage, indexed for retrieval
+
+This is how you handle *massive* PDFs/XLSX/DOCX/PPTX without losing traceability.
+
+---
+
+# “LLM must be very precise and tuned”
+
+You won’t get enterprise precision by asking a single model to “generate the report.” You get it by enforcing a quality system:
+
+## The enterprise-grade LLM setup
+
+* **Structured outputs only** (JSON validated against schemas)
+* **Evidence-first**: every claim links to anchors (Evidence Drawer)
+* **Deterministic numbers**: financial/KPI math runs in numeric blocks, not in the LLM
+* **Multi-agent workflow**:
+
+  * Classifier (low risk)
+  * Extractor (facts+evidence)
+  * Verifier (evidence coverage + unit/period checks)
+  * Narrator (prose only from approved facts)
+  * Editor (enterprise tone + template conformance)
+* **Evaluation harness** in CI:
+
+  * schema pass rate
+  * evidence coverage %
+  * “orphan number” detection in narrative
+  * regression suite on sample bundles
+
+Fine-tuning can come later—after you have stable schemas, metrics, and gating. Otherwise you’ll just train instability.
+
+---
+
+# Parallel track: Figma must cover the full scope (or UI will be weird)
+
+Yes—design in Figma, but do it as a **platform system**, not isolated screens.
+
+Minimum enterprise Figma scope:
+
+1. **IA + Navigation** (Tenant → Company → Project → Phases → Outputs/Reports)
+2. **Data Intake Wizard** (Upload → Preview → Mapping → Validate → Confirm) with all edge states
+3. **Phase Workspace Template** (reusable 1–7): progress, logs, dashboards, outputs, gates, Evidence Drawer everywhere
+4. **Outputs + Report Generator**: artifact versions + diff + report builder + export formats
+
+The ZIP includes a detailed Figma frame checklist to remove ambiguity.
+
+---
+
+## Practical next step (so implementation converges fast)
+
+1. Put `reorg-platform-enterprise-spec.zip` into the repo (or docs folder).
+2. Tell Replit/devs: implement **Company CRUD + Project under Company** first, then Phase 0, then Phase 1—**no skipping**.
+3. Build dashboards by wiring metrics tables → charts → report templates.
+4. Use your example PDFs as **acceptance benchmarks**: Phase 1 must output KPI Tree + 12-month dashboard + exec summary; Phase 4 must output NPV/IRR/ROI + sensitivity.
+
+If you share 2–3 screenshots of what Replit built that feels wrong, I’ll map the mismatches directly to the contract (“missing Company layer”, “no phase workspace”, “no versioned artifacts”, “LLM generating numbers”, etc.) and give the exact corrective spec to enforce.

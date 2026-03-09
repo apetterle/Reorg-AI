@@ -1,0 +1,37 @@
+department,metric,value,unit,period,category
+Customer Service,Annual Operating Cost,18500000,BRL,annual,financial
+Customer Service,Total Headcount,185,FTE,current,workforce
+Customer Service,Cost per FTE,100000,BRL,annual,financial
+Customer Service,Average Handle Time,8.5,minutes,monthly_avg,operational
+Customer Service,First Contact Resolution,62,percent,monthly_avg,quality
+Customer Service,Customer Satisfaction Score,7.2,NPS,monthly_avg,quality
+Customer Service,Tickets per Month,42000,tickets,monthly_avg,volume
+Customer Service,Automation Rate,12,percent,current,technology
+Customer Service,Agent Turnover Rate,28,percent,annual,workforce
+Back Office Processing,Annual Operating Cost,12200000,BRL,annual,financial
+Back Office Processing,Total Headcount,95,FTE,current,workforce
+Back Office Processing,Cost per FTE,128421,BRL,annual,financial
+Back Office Processing,Manual Processing Rate,78,percent,current,operational
+Back Office Processing,Error Rate,4.2,percent,monthly_avg,quality
+Back Office Processing,Average Processing Time,22,minutes,per_transaction,operational
+Back Office Processing,Transactions per Month,85000,transactions,monthly_avg,volume
+Back Office Processing,SLA Compliance,88,percent,monthly_avg,quality
+Compliance,Annual Operating Cost,8900000,BRL,annual,financial
+Compliance,Total Headcount,62,FTE,current,workforce
+Compliance,Cost per FTE,143548,BRL,annual,financial
+Compliance,Manual Review Rate,92,percent,current,operational
+Compliance,False Positive Rate,35,percent,monthly_avg,quality
+Compliance,Regulatory Penalties Last Year,2400000,BRL,annual,risk
+Compliance,Audit Findings Open,47,findings,current,risk
+IT Infrastructure,Annual Cloud Spend,4200000,BRL,annual,technology
+IT Infrastructure,Legacy System Maintenance,3100000,BRL,annual,technology
+IT Infrastructure,Total Tech Headcount,45,FTE,current,workforce
+IT Infrastructure,System Downtime,14,hours,monthly_avg,operational
+IT Infrastructure,Tech Debt Ratio,65,percent,current,technology
+Company Total,Total Annual Revenue,320000000,BRL,annual,financial
+Company Total,Total Employees,387,FTE,current,workforce
+Company Total,Total Operating Cost,39600000,BRL,annual,financial
+Company Total,Operating Margin,12.4,percent,annual,financial
+Company Total,Customer Base,180000,customers,current,volume
+Company Total,Annual Customer Churn,8.5,percent,annual,quality
+Company Total,Digital Channel Adoption,34,percent,current,technology

@@ -1,0 +1,43 @@
+%% ReOrg AI — User Flows
+
+%% Flow 1: Onboarding
+graph TD
+    A[Landing Page] --> B[Register]
+    B --> C[Create Tenant]
+    C --> D[Invite Team Members]
+    D --> E[Dashboard]
+
+%% Flow 2: Project Creation
+graph TD
+    A2[Dashboard] --> B2[Select Tenant]
+    B2 --> C2[Create Project]
+    C2 --> D2[Configure Project]
+    D2 --> E2[Project Overview]
+
+%% Flow 3: Data Intake
+graph TD
+    A3[Project Overview] --> B3[Upload Documents]
+    B3 --> C3[Preview & PII Check]
+    C3 -->|PII Detected| D3[Sanitize]
+    D3 --> C3
+    C3 -->|Clean| E3[Map Columns]
+    E3 --> F3[Validate]
+    F3 --> G3[Confirm & Load]
+
+%% Flow 4: Phase Execution
+graph TD
+    A4[Phase Workspace] --> B4[Check Prerequisites]
+    B4 -->|Met| C4[Run Phase]
+    B4 -->|Not Met| D4[Show Blockers]
+    C4 --> E4[Monitor Progress]
+    E4 --> F4[Review Results]
+    F4 --> G4[Gate Checklist]
+    G4 -->|Pass| H4[Unlock Next Phase]
+    G4 -->|Fail| I4[Back to Fix]
+
+%% Flow 5: Output Generation
+graph TD
+    A5[Outputs Tab] --> B5[Select Artifacts]
+    B5 --> C5[Build Report]
+    C5 --> D5[Preview Report]
+    D5 --> E5[Export Bundle]

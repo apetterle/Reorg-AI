@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "business_case_report_v1",
+  "type": "object",
+  "required": [
+    "executive_summary",
+    "assumptions",
+    "financials",
+    "scenarios",
+    "risks",
+    "recommendation"
+  ],
+  "properties": {
+    "executive_summary": { "type": "object" },
+    "assumptions": { "type": "array", "items": { "type": "object" } },
+    "financials": {
+      "type": "object",
+      "required": ["npv", "irr", "payback_months", "roi_by_year"],
+      "properties": {
+        "npv": { "type": "number" },
+        "irr": { "type": "number" },
+        "payback_months": { "type": "number" },
+        "roi_by_year": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["year", "roi"],
+            "properties": {
+              "year": { "type": "integer" },
+              "roi": { "type": "number" }
+            }
+          }
+        }
+      }
+    },
+    "scenarios": { "type": "array", "items": { "type": "object" } },
+    "risks": { "type": "array", "items": { "type": "object" } },
+    "recommendation": { "type": "string" }
+  }
+}

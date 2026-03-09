@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "valuescope_report_v1",
+  "type": "object",
+  "required": [
+    "executive_summary",
+    "kpi_tree",
+    "baseline",
+    "opportunities",
+    "risks",
+    "appendix"
+  ],
+  "properties": {
+    "executive_summary": {
+      "type": "object",
+      "required": ["context", "key_findings", "top_opportunities", "assumptions"],
+      "properties": {
+        "context": { "type": "string" },
+        "key_findings": { "type": "array", "items": { "$ref": "#/$defs/claim" } },
+        "top_opportunities": { "type": "array", "items": { "$ref": "#/$defs/opportunity" } },
+        "assumptions": { "type": "array", "items": { "$ref": "#/$defs/assumption" } }
+      }
+    },
+    "kpi_tree": { "type": "object" },
+    "baseline": { "type": "object" },
+    "opportunities": { "type": "array", "items": { "$ref": "#/$defs/opportunity" } },
+    "risks": { "type": "array", "items": { "$ref": "#/$defs/risk" } },
+    "appendix": { "type": "object" }
+  },
+  "$defs": {
+    "evidence_ref": {
+      "type": "object",
+      "required": ["evidence_ids"],
+      "properties": {
+        "evidence_ids": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "required": ["claim_id", "text", "severity", "evidence"],
+      "properties": {
+        "claim_id": { "type": "string" },
+        "text": { "type": "string" },
+        "severity": { "type": "string", "enum": ["low", "medium", "high"] },
+        "evidence": { "$ref": "#/$defs/evidence_ref" }
+      }
+    },
+    "assumption": {
+      "type": "object",
+      "required": ["assumption_id", "text", "owner", "status"],
+      "properties": {
+        "assumption_id": { "type": "string" },
+        "text": { "type": "string" },
+        "owner": { "type": "string" },
+        "status": { "type": "string", "enum": ["proposed", "approved", "rejected"] }
+      }
+    },
+    "opportunity": {
+      "type": "object",
+      "required": ["opp_id", "title", "summary", "estimated_value", "confidence", "evidence"],
+      "properties": {
+        "opp_id": { "type": "string" },
+        "title": { "type": "string" },
+        "summary": { "type": "string" },
+        "estimated_value": {
+          "type": "object",
+          "required": ["amount", "currency", "period"],
+          "properties": {
+            "amount": { "type": "number" },
+            "currency": { "type": "string" },
+            "period": { "type": "string" }
+          }
+        },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "evidence": { "$ref": "#/$defs/evidence_ref" }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "required": ["risk_id", "title", "impact", "likelihood", "mitigation"],
+      "properties": {
+        "risk_id": { "type": "string" },
+        "title": { "type": "string" },
+        "impact": { "type": "string", "enum": ["low", "medium", "high"] },
+        "likelihood": { "type": "string", "enum": ["low", "medium", "high"] },
+        "mitigation": { "type": "string" }
+      }
+    }
+  }
+}
